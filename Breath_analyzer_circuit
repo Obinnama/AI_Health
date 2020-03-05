@@ -1,0 +1,552 @@
+// include the library code:
+#include <LiquidCrystal.h>
+#include <Wire.h>
+// initialize the library by associating any needed LCD interface pin
+// with the arduino pin number it is connected to
+const int rs = 8, en = 9, d4 = 13, d5 = 12, d6 = 11, d7 = 10;
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+
+int analogPin= 0;
+int V_measured= 0;
+int Vin= 5;
+float Vout= 0;
+int apply_voltage = 2;
+
+float R2;
+float R2a=R2; 
+float buffer= 0;
+float s;
+int i;
+#define motorPin 50
+
+int ch2K = 6;
+int ch20K = 5;
+int ch200K = 4;
+int ch25M = 3;
+
+
+int Scale2k=26;
+int Scale20k=28;
+int Scale200k=30;
+int Scale25M=32;
+void setup() 
+{
+ // set up the LCD's number of columns and rows:
+  lcd.begin(16, 2);
+  
+  Serial.begin(9600);
+  pinMode(V_measured,INPUT); 
+  pinMode(analogPin,INPUT);
+  pinMode(apply_voltage,OUTPUT);
+  
+  //Detect the range mode (0-1k; 10k-100k; 100k-1M)
+  pinMode(Scale2k,INPUT);
+  pinMode(Scale20k,INPUT);
+  pinMode(Scale200k,INPUT);
+  pinMode(Scale25M,INPUT);
+
+
+//We set this pins as input for now. 
+  pinMode(ch2K,INPUT);
+  pinMode(ch20K,INPUT);
+  pinMode(ch200K,INPUT);
+  pinMode(ch25M,INPUT);
+  pinMode(motorPin, OUTPUT);
+
+}
+  
+
+void loop() {
+  // put your main code here, to run repeatedly:
+if (digitalRead(Scale2k))
+{  
+  digitalWrite(motorPin, LOW);
+  digitalWrite(apply_voltage,HIGH);
+  pinMode(ch2K,OUTPUT);
+  pinMode(ch20K,INPUT);
+  pinMode(ch200K,INPUT);
+  pinMode(ch25M,INPUT);
+  digitalWrite(ch2K,LOW);
+  
+  for (i=0;i<1; i++){
+  float R1= 2; // Set this values to the value of the used resistor in K ohms
+  V_measured= analogRead(analogPin); //in 8bits
+  
+      buffer= V_measured * Vin;
+      Vout= (buffer)/1024.0;  //in volts
+      buffer= (Vin/Vout) -1;
+      R2=R1 * buffer*1000; //*1000 because we express it in ohms 
+      R2a=R2; 
+  }
+      if (R2 > 2000)
+  {
+    Serial.print("Increase scale");
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print(" Increase scale");
+    lcd.setCursor(0, 1);
+    lcd.print("or change sensor");
+    delay(1000);
+  }
+
+  if (R2 < 2000)
+  {
+    Serial.print("----[2K]----");
+    Serial.print("\n");
+    Serial.print("\n");
+    Serial.print("Resistance: ");
+    Serial.print(R2a);
+    Serial.print(" ");
+    Serial.print("  Ohms");
+    Serial.print("\n");
+
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("INITIALIZING...");
+    delay(10000);
+    
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("SCALE:    0 - 2K");
+    lcd.setCursor(0, 1);
+    lcd.print(R2a);
+
+    lcd.setCursor(10, 1);
+    lcd.print("  Ohms");
+    delay(5000);
+
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("INPUT BREATH");
+    lcd.setCursor(0, 2);
+    lcd.print("OR GAS SAMPLE...");
+    delay(10000);
+    
+    lcd.clear();  
+    lcd.setCursor(0, 0);
+    lcd.print("MEASURING");  
+    lcd.setCursor(0, 2);
+    lcd.print("SENSITIVITY...%");  
+    delay(10000); 
+
+       for (i=0;i<2; i++){
+  float R1= 2; // Set this values to the value of the used resistor in K ohms
+  V_measured= analogRead(analogPin); //in 8bits
+  
+      buffer= V_measured * Vin;
+      Vout= (buffer)/1024.0;  //in volts
+      buffer= (Vin/Vout) -1;
+      R2=R1 * buffer*1000; //*1000 because we express it in ohms 
+     
+  }
+     
+     s=((R2-R2a)/R2a)*100;
+     
+    Serial.print("----[2K]----");
+    Serial.print("\n");
+    Serial.print("\n");
+    Serial.print("Sensitivity: ");  
+    Serial.print(s);
+    Serial.print(" ");
+    Serial.print("  %");
+    Serial.print("\n");
+
+    lcd.clear();  
+    lcd.setCursor(0, 0);
+    lcd.print("SENSITIVITY...");
+    lcd.setCursor(0, 2);
+    lcd.print(s);
+
+    lcd.setCursor(5, 1);
+    lcd.print("  %");
+    delay(10000);
+
+    lcd.clear();  
+    lcd.setCursor(0, 0);
+    lcd.print("REFRESHING...");
+    digitalWrite(motorPin, HIGH);
+    delay(30000);
+    }
+    
+}
+
+    ///////////////////-20k-/////////////////////
+if (digitalRead(Scale20k))
+{  
+  digitalWrite(motorPin, LOW);
+  digitalWrite(apply_voltage,HIGH);
+  pinMode(ch2K,INPUT);
+  pinMode(ch20K,OUTPUT);
+  pinMode(ch200K,INPUT);
+  pinMode(ch25M,INPUT);
+  digitalWrite(ch20K,LOW);
+
+   for (i=0;i<1; i++){
+  float R1= 20; // Set this values to the value of the used resistor in K ohms
+  V_measured= analogRead(analogPin); //in 8bits
+  
+      buffer= V_measured * Vin;
+      Vout= (buffer)/1024.0;  //in volts
+      buffer= (Vin/Vout) -1;
+      R2= R1 * buffer;
+      R2a=R2; 
+   }
+  
+      if (R2 > 20)
+      {
+        Serial.print("Increase scale");
+        lcd.clear();
+        lcd.setCursor(0,0); 
+        lcd.print(" Increase scale"); 
+        lcd.setCursor(0,1); 
+        lcd.print("or insert resist");      
+        delay(1000);
+      }
+  
+      if (R2 < 20)
+      {
+        Serial.print("----[20K]----");
+        Serial.print("\n");
+        Serial.print("\n");
+        Serial.print("Resistance: ");
+        Serial.print(R2a);
+        Serial.print(" ");
+        Serial.print("K ohms");
+        Serial.print("\n");
+
+        lcd.clear();
+        lcd.setCursor(0, 0); 
+        lcd.print("INITIALIZING..."); 
+        delay(10000); 
+        
+        lcd.clear();
+        lcd.setCursor(0,0); 
+        lcd.print("SCALE:   2 - 20K");
+        lcd.setCursor(0,1); 
+        lcd.print(R2a);
+
+        lcd.setCursor(10,1); 
+        lcd.print("K ohms");
+        delay(5000);
+
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print("INPUT BREATH");
+        lcd.setCursor(0, 2);
+        lcd.print("OR GAS SAMPLE...");
+        delay(10000);
+
+        lcd.clear();  
+        lcd.setCursor(0, 0);
+        lcd.print("MEASURING"); 
+        lcd.setCursor(0, 2);
+        lcd.print("SENSITIVITY...%"); 
+        delay(10000); 
+
+        for (i=0;i<1; i++){
+         float R1= 20; // Set this values to the value of the used resistor in K ohms
+         V_measured= analogRead(analogPin); //in 8bits
+  
+         buffer= V_measured * Vin;
+         Vout= (buffer)/1024.0;  //in volts
+         buffer= (Vin/Vout) -1;
+         R2= R1 * buffer;
+         
+
+        }
+
+          s=((R2-R2a)/R2a)*100;
+     
+        Serial.print("----[20K]----");
+        Serial.print("\n");
+        Serial.print("\n");
+        Serial.print("Sensitivity: ");  
+        Serial.print(s);
+        Serial.print(" ");
+        Serial.print("  %");
+        Serial.print("\n");
+    
+        lcd.clear();  
+        lcd.setCursor(0, 0);
+        lcd.print("SENSITIVITY...");
+        lcd.setCursor(0, 2);
+        lcd.print(s);
+    
+        lcd.setCursor(5, 1);
+        lcd.print("  %");
+        delay(10000);
+    
+        lcd.clear();  
+        lcd.setCursor(0, 0);
+        lcd.print("REFRESHING...");
+        digitalWrite(motorPin, HIGH);
+        delay(30000); 
+
+      }
+    
+}
+
+////////////////////////////////////////////
+
+
+
+
+
+///////////////////-200k-/////////////////////
+if (digitalRead(Scale200k))
+{  
+  digitalWrite(motorPin, LOW);
+  digitalWrite(apply_voltage,HIGH);
+  pinMode(ch2K,INPUT);
+  pinMode(ch20K,INPUT);
+  pinMode(ch200K,OUTPUT);
+  pinMode(ch25M,INPUT);
+  digitalWrite(ch200K,LOW);
+  
+      for (i=0;i<1; i++){
+        float R1= 220; // Set this values to the value of the used resistor in K ohms
+        V_measured= analogRead(analogPin); //in 8bits
+  
+        buffer= V_measured * Vin;
+        Vout= (buffer)/1024.0;  //in volts
+        buffer= (Vin/Vout) -1;
+        R2= R1 * buffer;
+        R2a=R2; //modified
+   }
+  
+      if (R2 > 200)
+      {
+        Serial.print("Increase scale");
+        lcd.clear();
+        lcd.setCursor(0,0); 
+        lcd.print(" Increase scale");
+        lcd.setCursor(0,1); 
+        lcd.print("or insert resist");       
+        delay(1000);
+      }
+  
+      if (R2 < 200)
+      {
+        Serial.print("----[200K]----");
+        Serial.print("\n");
+        Serial.print("\n");
+        Serial.print("Resistance: ");
+        Serial.print(R2a);
+        Serial.print(" ");
+        Serial.print("K ohms");
+        Serial.print("\n");
+
+        lcd.clear(); 
+        lcd.setCursor(0, 0); 
+        lcd.print("INITIALIZING..."); 
+        delay(10000); 
+        
+        lcd.clear();
+        lcd.setCursor(0,0); 
+        lcd.print("SCALE: 20 - 200K");
+        lcd.setCursor(0,1); 
+        lcd.print(R2a);
+
+        lcd.setCursor(10,1); 
+        lcd.print("K ohms");
+        delay(5000);
+
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print("INPUT BREATH");
+        lcd.setCursor(0, 2);
+        lcd.print("OR GAS SAMPLE...");
+        delay(10000);
+
+        lcd.clear();  
+        lcd.setCursor(0, 0);
+        lcd.print("MEASURING"); 
+        lcd.setCursor(0, 2);
+        lcd.print("SENSITIVITY...%"); 
+        delay(10000); 
+
+        for (i=0;i<1; i++){
+         float R1= 220; // Set this values to the value of the used resistor in K ohms
+         V_measured= analogRead(analogPin); //in 8bits
+  
+         buffer= V_measured * Vin;
+         Vout= (buffer)/1024.0;  //in volts
+         buffer= (Vin/Vout) -1;
+         R2= R1 * buffer;
+         
+        }
+
+        s=((R2-R2a)/R2a)*100;
+     
+        Serial.print("----[200K]----");
+        Serial.print("\n");
+        Serial.print("\n");
+        Serial.print("Sensitivity: ");  
+        Serial.print(s);
+        Serial.print(" ");
+        Serial.print("  %");
+        Serial.print("\n");
+    
+        lcd.clear();  
+        lcd.setCursor(0, 0);
+        lcd.print("SENSITIVITY...");
+        lcd.setCursor(0, 2);
+        lcd.print(s);
+    
+        lcd.setCursor(5, 1);
+        lcd.print("  %");
+        delay(10000);
+    
+        lcd.clear();  
+        lcd.setCursor(0, 0);
+        lcd.print("REFRESHING...");
+        digitalWrite(motorPin, HIGH);
+        delay(30000); 
+
+
+        
+      }
+    
+}
+//////////////////////////////////////////// 
+
+
+
+///////////////////-25M-/////////////////////
+if (digitalRead(Scale25M))
+{  
+  digitalWrite(motorPin, LOW);
+  digitalWrite(apply_voltage,HIGH);
+  pinMode(ch2K,INPUT);
+  pinMode(ch20K,INPUT);
+  pinMode(ch200K,INPUT);
+  pinMode(ch25M,OUTPUT);
+  digitalWrite(ch25M,LOW);
+
+
+  for (i=0;i<1; i++){
+        float R1= 25; // Set this values to the value of the used resistor in K ohms
+        V_measured= analogRead(analogPin); //in 8bits
+  
+        buffer= V_measured * Vin;
+        Vout= (buffer)/1024.0;  //in volts
+        buffer= (Vin/Vout) -1;
+        R2= R1 * buffer;
+        R2a=R2; 
+   }
+      
+  
+      if (R2 > 25)
+      {
+        Serial.print("Increase scale");
+        lcd.clear();
+        lcd.setCursor(0,0); 
+        lcd.print(" Increase scale");
+        lcd.setCursor(0,1); 
+        lcd.print("or insert resist");
+
+        lcd.setCursor(10,1); 
+        lcd.print("M ohms");       
+        delay(1000);
+      }
+  
+      if (R2 < 25)
+      {
+        Serial.print("----[25M]----");
+        Serial.print("\n");
+        Serial.print("\n");
+        Serial.print("Resistance: ");
+        Serial.print(R2a);
+        Serial.print(" ");
+        Serial.print("M ohms");
+        Serial.print("\n");
+      
+        lcd.clear(); 
+        lcd.setCursor(0, 0); 
+        lcd.print("INITIALIZING..."); 
+        delay(10000);
+
+        lcd.clear();
+        lcd.setCursor(0,0); 
+        lcd.print("SCALE:  200 - 25M");
+        lcd.setCursor(0,1); 
+        lcd.print(R2a);
+
+        lcd.setCursor(10,1); 
+        lcd.print("M ohms");
+        delay(1000);//change to 5000
+
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print("INPUT BREATH");
+        lcd.setCursor(0, 2);
+        lcd.print("OR GAS SAMPLE...");
+        delay(10000);
+
+        lcd.clear();  
+        lcd.setCursor(0, 0);
+        lcd.print("MEASURING");  
+        lcd.setCursor(0, 2);
+        lcd.print("SENSITIVITY...%");  
+        delay(10000);  
+
+      for (i=0;i<1; i++){
+        float R1= 25; // Set this values to the value of the used resistor in K ohms
+        V_measured= analogRead(analogPin); //in 8bits
+  
+        buffer= V_measured * Vin;
+        Vout= (buffer)/1024.0;  //in volts
+        buffer= (Vin/Vout) -1;
+        R2= R1 * buffer;
+        
+       }
+
+       s=((R2-R2a)/R2a)*100;
+     
+        Serial.print("----[25M]----");
+        Serial.print("\n");
+        Serial.print("\n");
+        Serial.print("Sensitivity: ");  
+        Serial.print(s);
+        Serial.print(" ");
+        Serial.print("  %");
+        Serial.print("\n");
+    
+        lcd.clear(); 
+        lcd.setCursor(0, 0);
+        lcd.print("SENSITIVITY..."); 
+        lcd.setCursor(0, 2);
+        lcd.print(s);
+    
+        lcd.setCursor(5, 1);
+        lcd.print("  %");
+        delay(10000);
+    
+       lcd.clear(); 
+        lcd.setCursor(0, 0);
+        lcd.print("REFRESHING...");
+        digitalWrite(motorPin, HIGH);
+        delay(30000); 
+
+        
+      }
+    
+}
+////////////////////////////////////////////
+
+
+
+
+
+       if (        (digitalRead(Scale2k)==LOW)  &&  (digitalRead(Scale20k)==LOW)  &&  (digitalRead(Scale200k)==LOW)   &&  (digitalRead(Scale25M)==LOW)      )
+  { 
+    Serial.print("Select scale");
+    lcd.clear();
+    lcd.setCursor(0,0); 
+    lcd.print("Select scale and");
+    lcd.setCursor(0,1); 
+    lcd.print("insert  resistor");
+   Serial.print("\n");        
+   delay(1000);
+  }
+}
