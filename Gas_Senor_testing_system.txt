@@ -1,0 +1,338 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+#
+# Created by: PyQt5 UI code generator 5.11.3
+#
+# WARNING! All changes made in this file will be lost!
+import sys
+from PyQt5 import QtCore, QtGui, QtWidgets
+import time
+import RPi.GPIO as GPIO
+from PyQt5.QtCore import QTimer
+from PyQt5.QtWidgets import QMessageBox
+
+
+################################################################################
+    
+                                    #Pop Up Window
+#################################################################################   
+
+class PopUp(QtWidgets.QWidget):
+    
+    #GPIO setup
+    GPIO.setmode ( GPIO.BOARD )
+    out_channel_list = [7,11,13,15]
+    in_channel_list = [8,10,12,16]
+    GPIO.setup ( out_channel_list, GPIO.OUT )
+    GPIO.setup ( in_channel_list, GPIO.IN )
+
+    #Communication to Main Window
+    turnon_request = QtCore.pyqtSignal(str)
+    shutdown_request = QtCore.pyqtSignal(str)
+    
+    gpio_in=""
+    gpio_out=""
+
+    def __init__(self,relay_number_selected,gpio_in_selected,gpio_out_selected):
+        super(PopUp, self).__init__()
+        
+        self.gpio_in = gpio_in_selected
+        self.gpio_out = gpio_out_selected
+        
+        #Update window every second setup
+        self.uiUpdateRate = QTimer()
+        self.uiUpdateRate.setInterval(1000)#Refresh the ui every second
+        self.uiUpdateRate.timeout.connect(self.update)
+        self.uiUpdateRate.start()
+        
+        #Pop up window setup
+        self.setObjectName("relay_popup")
+        self.resize(600, 300)
+        self.setWindowTitle( "Power Selection Window")
+        
+
+        #Title Setup
+        self.lbl = QtWidgets.QLabel ( self )
+        self.lbl.setGeometry ( QtCore.QRect ( 220, 10, 800, 51 ) )
+        font = QtGui.QFont ()
+        font.setFamily ( "MS Sans Serif" )
+        font.setPointSize ( 14 )
+        font.setBold ( False )
+        font.setWeight ( 75 )
+        self.lbl.setFont(font)
+        self.lbl.setText("Relay " + relay_number_selected + " Selected")
+        
+        #Power Off setup
+        self.poweroff = QtWidgets.QPushButton ( self )
+        self.poweroff.setGeometry ( QtCore.QRect ( 20, 200, 140, 42 ) )
+        self.poweroff.setObjectName ( "poweroff" )
+        self.poweroff.setAutoRepeat(True)
+        self.poweroff.setAutoRepeatDelay(1000)
+        self.poweroff.setAutoRepeatInterval(1000)
+        self.poweroff._state = 0
+        self.poweroff.clicked.connect(self.send_clicked_off)
+        self.poweroff.setText( "Power Off")
+
+        
+        #Power On Setup
+        self.poweron = QtWidgets.QPushButton ( self )
+        self.poweron.setGeometry ( QtCore.QRect ( 235, 200, 140, 42) )
+        self.poweron.setObjectName ( "poweron" )
+        self.poweron.clicked.connect(self.send_click_on)
+        self.poweron.setText( "Power On")
+
+        
+        #Cancel Setup
+        self.cancel = QtWidgets.QPushButton ( self )
+        self.cancel.setGeometry ( QtCore.QRect ( 440, 200, 140, 42 ) )
+        self.cancel.setObjectName ( "cancel" )
+        self.cancel.clicked.connect(self.close_window)
+        self.cancel.setText( "Cancel")
+
+        
+        #Selected Relay Status
+        self.status = QtWidgets.QLabel(self)
+        self.status.setGeometry(QtCore.QRect(275, 100, 50, 50))
+        self.status.setText("")
+        self.status.setObjectName("status")
+        self.status.setStyleSheet ( "background-color:#ff0000;" )
+
+
+        
+
+    #send to mainwindow to process
+    def send_clicked_off(self):
+        buttonReply = QMessageBox.question(self, "Hard Shutdown", "You are about to shutdown. Continue?", QMessageBox.No | QMessageBox.Yes, QMessageBox.No)
+        if buttonReply == QMessageBox.Yes:
+            self.shutdown_request.emit(self.gpio_out)
+
+        
+    #closes pop up
+    def close_window(self):
+        self.close()
+
+    #send to mainwindow to process
+    def send_click_on(self):
+        self.turnon_request.emit(self.gpio_out)
+
+    #Used to check Relay power state
+    def update(self):
+        if GPIO.input(int(self.gpio_in)):
+            self.status.setStyleSheet ( "background-color:#00ff00;" )
+        else:
+            self.status.setStyleSheet ( "background-color:#ff0000;" )
+
+
+
+################################################################################
+        
+                                    #Main Window
+#################################################################################        
+
+class MainWindow(QtWidgets.QWidget):
+    
+    #GPIO setup
+    GPIO.setmode ( GPIO.BOARD )
+    out_channel_list = [7,11,13,15]
+    in_channel_list = [8,10,12,16]
+    GPIO.setup ( out_channel_list, GPIO.OUT )
+    GPIO.setup ( in_channel_list, GPIO.IN )
+
+    def __init__(self):
+        super(MainWindow, self).__init__()
+        
+        #sizing window
+        self.resize(800, 480)
+        font = QtGui.QFont()
+        font.setPointSize(8)
+        self.setFont(font)
+        self.setWindowTitle("Main Menu")
+
+
+        
+        #Timing for ui updates
+        self.uiUpdateRate = QTimer()
+        self.uiUpdateRate.setInterval(1000)#Refresh the ui every second
+        self.uiUpdateRate.timeout.connect(self.update)
+        self.uiUpdateRate.start()
+        
+        #Relay 1 setup
+        self.relay_1 = QtWidgets.QPushButton(self)
+        self.relay_1.setGeometry(QtCore.QRect(60, 60, 145, 90))
+        self.relay_1.clicked.connect(self.relay_1_click)
+        self.relay_1.setObjectName ( "relay_1" )
+        self.relay_1.setText("Relay 1")
+
+        #Relay 2 setup
+        self.relay_2 = QtWidgets.QPushButton ( self )
+        self.relay_2.setGeometry ( QtCore.QRect ( 350, 60, 145, 90 ) )
+        self.relay_2.setObjectName ( "relay_2" )
+        self.relay_2.clicked.connect(self.relay_2_click)
+        self.relay_2.setText( "Relay 2")
+
+
+        #Relay 3 setup
+        self.relay_3 = QtWidgets.QPushButton ( self )
+        self.relay_3.setGeometry ( QtCore.QRect ( 640, 60, 145, 90 ) )
+        self.relay_3.setObjectName ( "relay_3" )
+        self.relay_3.clicked.connect(self.relay_3_click)
+        self.relay_3.setText( "Relay 3")
+
+        
+
+        #Relay 4 setup
+        self.relay_4 = QtWidgets.QPushButton(self)
+        self.relay_4.setGeometry(QtCore.QRect(60, 180, 145, 90))
+        self.relay_4.setObjectName("relay_4")
+        self.relay_4.clicked.connect(self.relay_4_click)
+        self.relay_4.setText( "Relay 4")
+        
+        
+        #ALL on relay setup
+        self.all_on = QtWidgets.QPushButton(self)
+        self.all_on.setGeometry(QtCore.QRect(155, 420, 145, 45))
+        self.all_on.setObjectName("all")
+        self.all_on.clicked.connect(self.all_click_on)
+        self.all_on.setText( "Turn On All")
+        
+        #ALL off relay setup
+        self.all_off = QtWidgets.QPushButton(self)
+        self.all_off.setGeometry(QtCore.QRect(480, 420, 145, 45))
+        self.all_off.setObjectName("all")
+        self.all_off.clicked.connect(self.all_click_off)
+        self.all_off.setText( "Turn All Off")
+        
+        #All relays off
+        self.all_off = QtWidgets.QPushButton(self)
+        self.all_off.setGeometry(QtCore.QRect(745, 5, 50, 50))
+        self.all_off.setObjectName("all")
+        self.all_off.clicked.connect(self.closeProgram)
+        self.all_off.setText( "Exit")
+        
+        
+        
+        #Title setup
+        self.title = QtWidgets.QLabel(self)
+        self.title.setGeometry(QtCore.QRect(160, 0, 481, 33))
+        font = QtGui.QFont()
+        font.setFamily("HoloLens MDL2 Assets")
+        font.setPointSize(24)
+        self.title.setFont(font)
+        self.title.setObjectName("title")
+        self.title.setText("Relay Station")
+        
+        #Relay 1 status
+        self.status_1 = QtWidgets.QLabel(self)
+        self.status_1.setGeometry(QtCore.QRect(10, 60, 41, 90))
+        self.status_1.setText("")
+        self.status_1.setObjectName("status_1")
+        self.status_1.setStyleSheet ( "background-color:#ff0000;" )
+
+        #Relay 2 status
+        self.status_2 = QtWidgets.QLabel(self)
+        self.status_2.setGeometry(QtCore.QRect(300, 60, 41, 90))
+        self.status_2.setText("")
+        self.status_2.setObjectName("status_2")
+        self.status_2.setStyleSheet ( "background-color:#ff0000;" )
+
+        #Relay 3 status
+        self.status_3 = QtWidgets.QLabel(self)
+        self.status_3.setGeometry(QtCore.QRect(590, 60, 41, 90))
+        self.status_3.setText("")
+        self.status_3.setObjectName("status_3")
+        self.status_3.setStyleSheet ( "background-color:#ff0000;" )
+        
+        #Relay 4 status
+        self.status_4 = QtWidgets.QLabel(self)
+        self.status_4.setGeometry(QtCore.QRect(10, 180, 41, 90))
+        self.status_4.setText("")
+        self.status_4.setObjectName("status_4")
+        self.status_4.setStyleSheet ( "background-color:#ff0000;" )
+
+        self.showFullScreen()
+        
+        
+    #updates to check power state of components the relay is connected to
+    def update(self):
+        if GPIO.input(8):
+            self.status_1.setStyleSheet ( "background-color:#00ff00;" )
+        else:
+            self.status_1.setStyleSheet ( "background-color:#ff0000;" )
+        if GPIO.input(10):
+            self.status_2.setStyleSheet ( "background-color:#00ff00;" )
+        else:
+            self.status_2.setStyleSheet ( "background-color:#ff0000;" )
+        if GPIO.input(12):
+            self.status_3.setStyleSheet ( "background-color:#00ff00;" )
+        else:
+            self.status_3.setStyleSheet ( "background-color:#ff0000;" )
+        if GPIO.input(16):
+            self.status_4.setStyleSheet ( "background-color:#00ff00;" )
+        else:
+            self.status_4.setStyleSheet ( "background-color:#ff0000;" )
+
+    #Pop up for each relay
+    def relay_1_click(self):
+        self.popup = PopUp("1","8","7")
+        self.popup.shutdown_request.connect(self.shut_down)
+        self.popup.turnon_request.connect(self.turn_on)
+        self.popup.show()
+
+    def relay_2_click(self):
+        self.popup = PopUp("2","10","11")
+        self.popup.shutdown_request.connect(self.shut_down)
+        self.popup.turnon_request.connect(self.turn_on)
+        self.popup.show()
+
+
+    def relay_3_click(self):
+        self.popup = PopUp("3","12","13")
+        self.popup.shutdown_request.connect(self.shut_down)
+        self.popup.turnon_request.connect(self.turn_on)
+        self.popup.show()
+
+
+    def relay_4_click(self):
+        self.popup = PopUp("4","16","15")
+        self.popup.shutdown_request.connect(self.shut_down)
+        self.popup.turnon_request.connect(self.turn_on)
+        self.popup.show()
+
+        
+    def all_click_on(self):
+        buttonReply = QMessageBox.question(self, "Turn On All", "Continue with powering on ALL Relays?", QMessageBox.No | QMessageBox.Yes, QMessageBox.No)
+        if buttonReply == QMessageBox.Yes:
+            GPIO.output ( int(7), GPIO.HIGH )
+            GPIO.output ( int(11), GPIO.HIGH )
+            GPIO.output ( int(13), GPIO.HIGH )
+            GPIO.output ( int(15), GPIO.HIGH )
+
+
+    def all_click_off(self):
+        buttonReply = QMessageBox.question(self, "Shutdown All", "Continue with powering off ALL Relays?", QMessageBox.No | QMessageBox.Yes, QMessageBox.No)
+        if buttonReply == QMessageBox.Yes:           
+            GPIO.output ( int(7), GPIO.LOW )
+            GPIO.output ( int(11), GPIO.LOW )
+            GPIO.output ( int(13), GPIO.LOW )
+            GPIO.output ( int(15), GPIO.LOW )
+            
+            
+    #Exit program   
+    def closeProgram(self):
+        self.close()
+
+    #shut down command produced by popup
+    def shut_down(self, relay_number):
+        GPIO.output ( int(relay_number), GPIO.LOW )
+        
+    def turn_on(self, relay_number):
+        GPIO.output ( int(relay_number), GPIO.HIGH )
+
+
+if __name__ == '__main__':
+
+    app = QtWidgets.QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+    sys.exit(app.exec_())
